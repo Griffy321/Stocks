@@ -1,0 +1,71 @@
+import matplotlib.pyplot as plt
+import pandas as pd
+import json
+from polygon import RESTClient
+from typing import cast
+from urllib3 import HTTPResponse
+
+api_key = 'your_api_key'
+client = RESTClient(api_key)
+
+# Get data
+aggs = cast(
+    HTTPResponse,
+    client.get_aggs(
+        'TSLA',  
+        1,
+        'minute',
+        '2024-05-01',
+        '2024-05-31',
+        raw=True
+    ),
+)
+
+poly_data = json.loads(aggs.data)
+poly_data = poly_data['results']
+
+print(f"Number of data points fetched: {len(poly_data)}")
+
+# Prepare the data
+dates = []
+open_prices = []
+high_prices = []
+low_prices = []
+close_prices = []
+volumes = []
+
+for bar in poly_data:
+    dates.append(pd.Timestamp(bar['t'], tz='GMT', unit='ms'))
+    open_prices.append(bar['o'])
+    high_prices.append(bar['h'])
+    low_prices.append(bar['l'])
+    close_prices.append(bar['c'])
+    volumes.append(bar['v'])
+
+data = {
+    'Open': open_prices,
+    'High': high_prices,
+    'Low': low_prices,
+    'Close': close_prices,
+    'Volume': volumes
+}
+
+dataFrame = pd.DataFrame(data, index=dates)
+
+dataFrame.index = pd.to_datetime(dataFrame.index)
+
+# Calculate returns
+dataFrame['Return'] = dataFrame['Close'].pct_change() * 100  
+
+# Drop Na values
+dataFrame = dataFrame.dropna()
+
+# Plot the returns distribution
+plt.figure(figsize=(12, 6))
+plt.hist(dataFrame['Return'], bins=250, edgecolor='k', alpha=0.7)
+plt.title('Distribution of Returns')
+plt.xlabel('Return (%)')
+plt.ylabel('Frequency')
+plt.grid(True)
+plt.show()
+
