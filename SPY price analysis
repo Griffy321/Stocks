@@ -1,0 +1,42 @@
+import yfinance as yf
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+from scipy.stats import norm
+ticker = 'SPY'
+
+start_date = '1993-02-01'
+end_date = '2024-08-27'
+spy_data = yf.download(ticker, start = start_date, end = end_date, interval = '1d')
+
+spy_data_filtered = spy_data[['Open', 'Close']]
+
+#print(spy_data_filtered)
+
+spy_data_filtered['Daily Return'] = spy_data_filtered['Close'].pct_change()
+spy_data_filtered = spy_data_filtered.dropna()
+
+# Get the mean
+mean_return = spy_data_filtered['Daily Return'].mean()
+print(f"Mean Daily Return: {mean_return:.5f}")
+
+# Plot distrobution
+plt.figure(figsize=(10,6))
+#Histogram
+sns.histplot(spy_data_filtered['Daily Return'], bins=500, kde=False, stat='density', color='blue', label='Daily Returns')
+
+mean = spy_data_filtered['Daily Return'].mean()
+std_dev = spy_data_filtered['Daily Return'].std()
+xmin, xmax = plt.xlim()
+x = np.linspace(xmin, xmax, 100)
+p = norm.pdf(x, mean, std_dev)
+plt.plot(x, p, 'k', linewidth=2, label = "Normal Distrobution")
+
+plt.title('Spy Daily Returns 1993-2024')
+plt.xlabel('Return')
+plt.ylabel('Dencity')
+plt.legend()
+
+#Show it
+plt.show()
